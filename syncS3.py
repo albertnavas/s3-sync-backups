@@ -1,31 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from pathlib import Path
 import os
 import datetime
 import boto3
 import botocore
 
 def uploadFile(filename_path):
+
 	try:
 	    s3Resource.Object(bucket_name, filename_path).load()
 	except botocore.exceptions.ClientError as e:
 	    if e.response['Error']['Code'] == "404":
-			s3Client.upload_file(base_path+filename_path, bucket_name, filename_path)
-			return True
+	    	s3Client.upload_file(base_path+filename_path, bucket_name, filename_path)
+	    	return True
 	    else:
-	        return False
+			# raise
+			return False
 	else:
 		print('Backup '+filename_path+' exist!')
 		return False
 
-# AWS credentials
 aws_access_key_id = ''
 aws_secret_access_key = ''
 
 bucket_name = ''
-base_path = '/backup/'
-backup_paths = ['database/', 'files/']
+base_path = '/backup/test/'
+backup_paths = ['db/', 'media/']
 
 # Only copy backups from last month
 last_month_date = datetime.datetime.now() + datetime.timedelta(-30)
@@ -57,7 +59,9 @@ for item in bucket.objects.all():
 		print(item.key+' deleted!')
 
 	# Delete old backups
-	last_modified_date =  datetime.datetime.fromtimestamp(os.path.getmtime(base_path+item.key))
-	if last_modified_date < last_month_date:
-		s3Client.delete_object(Bucket=bucket_name, Key=item.key)
-		print(item.key+' deleted (old date)!')
+	file = Path(base_path+item.key)
+	if file.is_file():
+		last_modified_date =  datetime.datetime.fromtimestamp(os.path.getmtime(base_path+item.key))
+		if last_modified_date < last_month_date:
+			s3Client.delete_object(Bucket=bucket_name, Key=item.key)
+			print(item.key+' deleted (old date)!')
